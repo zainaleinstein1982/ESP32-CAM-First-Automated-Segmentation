@@ -21,7 +21,7 @@ This repository contains the source code and resources for an **ESP32-CAM-First-
 
 ## Installation
 1. Clone this repository:   
-   git clone https://github.com/your-username/ESP32-CAM-Segmentation.git
+   git clone https://github.com/zainaleinstein1982/ESP32-CAM-Segmentation.git
    cd ESP32-CAM-Segmentation
 
 2. Install required Python dependencies:
