@@ -1,50 +1,98 @@
+# Directory structure for the ESP32-CAM Automated Segmentation Project
+
+## src/main.cpp
+# Include ESP32-CAM setup and core functions
+#include <Arduino.h>
+#include <WiFi.h>
+#include <esp_camera.h>
+
+const char* ssid = "Your_SSID";
+const char* password = "Your_PASSWORD";
+
+void setup() {
+  Serial.begin(115200);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Connecting to WiFi...");
+  }
+  Serial.println("Connected to WiFi.");
+  // Initialize the camera
+  camera_config_t config;
+  config.ledc_channel = LEDC_CHANNEL_0;
+  config.ledc_timer = LEDC_TIMER_0;
+  config.pin_d0 = Y2_GPIO_NUM;
+  // Add further camera initialization settings...
+}
+
+void loop() {
+  // Capture images and send to processing pipeline
+}
+
+## src/segmentation.py
+import numpy as np
+import cv2
+
+def segment_image(image_path):
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    _, thresholded = cv2.threshold(image, 128, 255, cv2.THRESH_BINARY)
+    contours, _ = cv2.findContours(thresholded, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    segmented = np.zeros_like(image)
+    cv2.drawContours(segmented, contours, -1, 255, -1)
+    return segmented
+
+if __name__ == "__main__":
+    result = segment_image("data/input/sample.jpg")
+    cv2.imwrite("data/output/segmented.jpg", result)
+
+## src/ink_detection.py
+import cv2
+
+def detect_ink(image_path):
+    image = cv2.imread(image_path)
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    lower_ink = (0, 0, 0)
+    upper_ink = (180, 255, 50)
+    mask = cv2.inRange(hsv, lower_ink, upper_ink)
+    return mask
+
+if __name__ == "__main__":
+    result = detect_ink("data/input/sample.jpg")
+    cv2.imwrite("data/output/ink_detected.jpg", result)
+
+## src/texture_render.py
 import cv2
 import numpy as np
-import open3d as o3d
 
-# Load captured image from ESP32-CAM
-image_path = "image.jpg"  # Path to your captured image
-image = cv2.imread(image_path)
+def render_texture(image_path):
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    kernel = np.ones((5, 5), np.float32)/25
+    texture = cv2.filter2D(image, -1, kernel)
+    return texture
 
-# Step 1: Preprocess the Image
-# Convert to grayscale for ink detection
-gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+if __name__ == "__main__":
+    result = render_texture("data/input/sample.jpg")
+    cv2.imwrite("data/output/texture.jpg", result)
 
-# Apply thresholding to detect ink (binary segmentation)
-_, binary_image = cv2.threshold(gray_image, 128, 255, cv2.THRESH_BINARY_INV)
+## docs/tutorial.md
+# Tutorial
+1. Set up ESP32-CAM with your preferred microcontroller software.
+2. Use `segmentation.py` to extract regions of interest from papyrus.
+3. Apply `ink_detection.py` to identify and extract inked areas.
+4. Generate texture mapping with `texture_render.py` for alignment.
 
-# Save binary ink detection result
-cv2.imwrite("ink_detection.jpg", binary_image)
+## docs/references.md
+# References
+- ESP32-CAM Documentation: [Link](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/hw-reference/esp32.html)
+- OpenCV Tutorials: [Link](https://docs.opencv.org/master/d6/d00/tutorial_py_root.html)
 
-# Step 2: Generate Texture Image
-# Extract texture from original image
-texture_image = cv2.detailEnhance(image, sigma_s=10, sigma_r=0.15)
+## requirements.txt
+opencv-python
+numpy
 
-# Save texture image
-cv2.imwrite("texture_image.jpg", texture_image)
+## LICENSE
+MIT License
 
-# Step 3: Segmentation and 3D Mesh Generation
-# Create a dummy 3D mesh (this should ideally be generated based on CT data inputs)
-# For demonstration, we'll create a simple plane mesh
-plane = o3d.geometry.TriangleMesh.create_box(width=1.0, height=1.0, depth=0.01)
-plane.compute_vertex_normals()
-
-# UV Mapping (dummy example for a flat plane)
-uv_map = np.array([
-    [0, 0], [1, 0], [1, 1], [0, 1]  # UV coordinates for the vertices
-])
-
-# Assign dummy UV map (normally generated through mesh flattening)
-uv_mapping_file = "uv_map.txt"
-np.savetxt(uv_mapping_file, uv_map, fmt="%.6f", header="# UV Map")
-
-# Save the mesh
-mesh_file = "segmentation_mesh.obj"
-o3d.io.write_triangle_mesh(mesh_file, plane)
-
-print("Processing complete!")
-print("Outputs:")
-print(f"1. Ink Detection Image: ink_detection.jpg")
-print(f"2. Texture Image: texture_image.jpg")
-print(f"3. Segmentation Mesh: {mesh_file}")
-print(f"4. UV Mapping File: {uv_mapping_file}")
+## README.md
+# ESP32-CAM Automated Segmentation
+This project automates segmentation, ink detection, and texture rendering for papyrus processing using ESP32-CAM and OpenCV.
