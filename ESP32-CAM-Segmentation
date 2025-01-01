@@ -1,0 +1,50 @@
+import cv2
+import numpy as np
+import open3d as o3d
+
+# Load captured image from ESP32-CAM
+image_path = "image.jpg"  # Path to your captured image
+image = cv2.imread(image_path)
+
+# Step 1: Preprocess the Image
+# Convert to grayscale for ink detection
+gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+# Apply thresholding to detect ink (binary segmentation)
+_, binary_image = cv2.threshold(gray_image, 128, 255, cv2.THRESH_BINARY_INV)
+
+# Save binary ink detection result
+cv2.imwrite("ink_detection.jpg", binary_image)
+
+# Step 2: Generate Texture Image
+# Extract texture from original image
+texture_image = cv2.detailEnhance(image, sigma_s=10, sigma_r=0.15)
+
+# Save texture image
+cv2.imwrite("texture_image.jpg", texture_image)
+
+# Step 3: Segmentation and 3D Mesh Generation
+# Create a dummy 3D mesh (this should ideally be generated based on CT data inputs)
+# For demonstration, we'll create a simple plane mesh
+plane = o3d.geometry.TriangleMesh.create_box(width=1.0, height=1.0, depth=0.01)
+plane.compute_vertex_normals()
+
+# UV Mapping (dummy example for a flat plane)
+uv_map = np.array([
+    [0, 0], [1, 0], [1, 1], [0, 1]  # UV coordinates for the vertices
+])
+
+# Assign dummy UV map (normally generated through mesh flattening)
+uv_mapping_file = "uv_map.txt"
+np.savetxt(uv_mapping_file, uv_map, fmt="%.6f", header="# UV Map")
+
+# Save the mesh
+mesh_file = "segmentation_mesh.obj"
+o3d.io.write_triangle_mesh(mesh_file, plane)
+
+print("Processing complete!")
+print("Outputs:")
+print(f"1. Ink Detection Image: ink_detection.jpg")
+print(f"2. Texture Image: texture_image.jpg")
+print(f"3. Segmentation Mesh: {mesh_file}")
+print(f"4. UV Mapping File: {uv_mapping_file}")
